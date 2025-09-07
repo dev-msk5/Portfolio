@@ -30,12 +30,9 @@ def gradient_function(X,y,w,b):         # Computing gradient for gradient descen
     dj_db=0
     dj_dw=0
 
-    for i in range(m):
-        fwb_i= np.dot(w,X[i])+b
-        dj_dw += (fwb_i-y[i])*X[i]
-        dj_db += fwb_i-y[i]
-    dj_dw/=m
-    dj_db/=m
+    error = np.dot(X,w)+b - y
+    dj_dw += np.dot(X.T,error) / m
+    dj_db += np.sum(error) / m
     
     return dj_dw,dj_db
 
@@ -63,12 +60,8 @@ def linear_model(X,y,w,b,alfa,iterations):
             w_history.append(w)
             J_history.append(cost)
             print(f"Iteration {i:4}: Cost {float(J_history[-1]):8.2f} ")
-    
-    m = X.shape[0]        
-    prediction = np.zeros(m)
-
-    for i in range(m):
-        prediction[i] = (w * X[i] + b).item()
+          
+    prediction = np.dot(X,w) + b
     
     print(f"Final weight: {float(w):8.4f},     final bias: {float(b):8.4f}")        
     # Plot the linear fit
