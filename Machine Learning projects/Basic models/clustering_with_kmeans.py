@@ -20,14 +20,26 @@ plt.show()
 
 #Kmeans model
 X, y_true = make_blobs()
+k = 3
+m,n = X.shape
 # print(X.shape, y_true.shape)
 def init_centroids(X,k):
     centroids = X[np.random.choice(X.shape[0],k)]    # centroids from random points of given blobs
     return centroids
 
 # print(init_centroids(X,3))
-#TODO cost function
+centroids = init_centroids(X,k)
 
-#TODO assign points to centroids
+# assign points to centroids
+X_sq = np.sum(X**2, axis=1, keepdims=True)      
+C_sq = np.sum(centroids**2, axis=1, keepdims=True).T    
+cross = X @ centroids.T                                 
+distances_sq = X_sq + C_sq - 2 * cross  
+close_cents_value = np.min(distances_sq, axis=1)  
+
+#TODO cost function
+def cost_function(X,close_cents_value):
+    return np.mean(close_cents_value)
+
 
 #TODO move centroids to cluster means
