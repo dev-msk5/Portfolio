@@ -14,7 +14,7 @@ submission = pd.read_csv(BASE/"gender_submission.csv")
 test.head()
 train.head()
 
-df = train.copy()  # train loaded earlier from /kaggle/input/titanic/train.csv
+df = train.copy()
 df_test = test.copy()
 
 #Choose features
