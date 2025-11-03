@@ -3,15 +3,13 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pathlib import Path
 
-import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        print(os.path.join(dirname, filename))
+BASE = Path(__file__).resolve().parent
 
-train = pd.read_csv("/kaggle/input/titanic/train.csv")
-test = pd.read_csv("/kaggle/input/titanic/test.csv")
-submission = pd.read_csv("/kaggle/input/titanic/gender_submission.csv")
+train = pd.read_csv(BASE/"train.csv")
+test = pd.read_csv(BASE/"test.csv")
+submission = pd.read_csv(BASE/"gender_submission.csv")
 
 test.head()
 train.head()
@@ -52,16 +50,17 @@ TEST = torch.tensor(test_x, dtype=torch.float32)
 #Model
 def init_model():
     model = nn.Sequential(
-        nn.Linear(8,15),
+        nn.Linear(8,32),
         nn.ReLU(),
-        nn.Linear(15,3),
+        nn.Linear(32,4),
         nn.ReLU(),
-        nn.Linear(3,1),
+        nn.Linear(4,1),
     )
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     loss_function = nn.BCEWithLogitsLoss()
 
     return model, optimizer, loss_function
+
 def train_model(X, Y, epochs=500):
     model, optimizer, loss_function = init_model()
 
@@ -79,7 +78,7 @@ def train_model(X, Y, epochs=500):
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip gradients
         optimizer.step()
 
-        if epoch % 50 == 0:
+        if epoch % (epochs//20) == 0:
             print(f"Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}")
 
     return model
@@ -87,8 +86,11 @@ def train_model(X, Y, epochs=500):
 model  = train_model(X, Y, 10000)
 
 with torch.no_grad():
-    # Perform a forward pass to get model predictions
-    prediction = model(TEST)
+    model.eval()                                # set eval mode
+    prediction = model(TEST)                    # raw logits
+    probs = torch.sigmoid(prediction)           # convert to probabilities in (0,1)
+    preds = (probs >= 0.65).int().cpu().numpy().flatten()   # binary 0/1
+
 
 submission = pd.DataFrame({
     'PassengerId': df_test['PassengerId'],
