@@ -3,7 +3,10 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchvision import transforms
 from pathlib import Path
+
 
 BASE = Path(__file__).resolve().parent
 
@@ -32,6 +35,20 @@ print(f"Shape of samples before removing NaN: {train_x_df.shape}")
 valid_idx = train_x_df.dropna().index
 train_x_df = train_x_df.loc[valid_idx].reset_index(drop=True)
 train_y_df = train_y_df.loc[valid_idx].reset_index(drop=True)
-
 print(f"Shape of samples after removing NaN: {train_x_df.shape}")
 
+#Normalize data
+X_tensor = torch.tensor(train_x_df.values.astype(np.float32))
+y_tensor = torch.tensor(train_y_df.values.astype(np.float32)).unsqueeze(1)
+train_dataset = torch.utils.data.TensorDataset(X_tensor, y_tensor)
+
+# compute mean/std and normalize tensors directly
+mean = X_tensor.mean(dim=0, keepdim=True)
+std = X_tensor.std(dim=0, keepdim=True)
+std[std == 0] = 1.0
+X_tensor = (X_tensor - mean) / std
+
+
+#Model TODO
+
+#Prediction TODO
