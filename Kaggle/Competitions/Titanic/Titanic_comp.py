@@ -47,54 +47,56 @@ X = torch.tensor(train_x, dtype=torch.float32)
 Y = torch.tensor(train_y, dtype=torch.float32).unsqueeze(1)
 TEST = torch.tensor(test_x, dtype=torch.float32)
 
+#normalize
+mean = X.mean(dim=0)
+std = X.std(dim=0)
+std[std == 0] = 1.0
+X = (X - mean) / std
+TEST = (TEST - mean) / std
+
 #Model
-def init_model():
-    model = nn.Sequential(
-        nn.Linear(8,32),
-        nn.ReLU(),
-        nn.Linear(32,4),
-        nn.ReLU(),
-        nn.Linear(4,1),
-    )
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
-    loss_function = nn.BCEWithLogitsLoss()
+model = nn.Sequential(
+    nn.Linear(8,64),
+    nn.ReLU(),
+    nn.Linear(64,32),
+    nn.ReLU(),
+    nn.Linear(32,8),
+    nn.ReLU(),
+    nn.Linear(8,1)
+)
+loss_fn = nn.BCEWithLogitsLoss()
+optimizer = optim.Adam(params=model.parameters(),lr=0.003)
+#Training
+epochs = 10000
+for epoch in range(epochs):
+    model.train()
+    
+    logits = model(X)
+    y_preds = torch.round(torch.sigmoid(logits))
+    
+    loss = loss_fn(logits, Y)
+    
+    optimizer.zero_grad()
+    
+    loss.backward()
+    
+    optimizer.step()
+    
+    if epoch % 500 == 0:
+        print(f"Epoch {epoch}: {loss.item()}")
 
-    return model, optimizer, loss_function
 
-def train_model(X, Y, epochs=500):
-    model, optimizer, loss_function = init_model()
-
-    for epoch in range(epochs):
-        optimizer.zero_grad()
-
-        outputs = model(X)
-        loss = loss_function(outputs, Y)
-
-        if torch.isnan(loss):
-            print(f"NaN detected at epoch {epoch}")
-            break
-
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # clip gradients
-        optimizer.step()
-
-        if epoch % (epochs//20) == 0:
-            print(f"Epoch {epoch}/{epochs}, Loss: {loss.item():.6f}")
-
-    return model
-
-model  = train_model(X, Y, 10000)
-
-with torch.no_grad():
-    model.eval()                                # set eval mode
-    prediction = model(TEST)                    # raw logits
-    probs = torch.sigmoid(prediction)           # convert to probabilities in (0,1)
-    preds = (probs >= 0.65).int().cpu().numpy().flatten()   # binary 0/1
-
+with torch.inference_mode():
+    model.eval()
+    probs = torch.sigmoid(model(TEST))
+    preds = torch.round(probs)
+    # guard against NaNs/inf just in case and convert to boolean True/False for submission
+    preds = torch.nan_to_num(preds, nan=0.0, posinf=0.0, neginf=0.0)
+    prediction = preds.cpu().detach().numpy().astype(bool).flatten()
 
 submission = pd.DataFrame({
-    'PassengerId': df_test['PassengerId'],
-    'Survived': prediction.numpy().astype(int).flatten()
+    'PassengerId': test['PassengerId'],
+    'Survived': prediction.astype(int)
 })
 submission.to_csv("submission.csv", index=False)
 print("Your submission was successfully saved!")
